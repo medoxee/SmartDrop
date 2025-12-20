@@ -1,0 +1,35 @@
+			# IN THE NAME OF ALLAH,
+# History             : 20-12-2025
+# Project             : SmartDrop+
+# Document description: This is a general search paper for the ESP32. 
+
+			ESP32: the core compoment
+-Made by Espressif Syetems -Dev Platform:
+ ESP-IDF (Iot Develompent Framework): Officiel, more professional 
+ tools, suitable for projects.
+ Arduino IDE: Begginner, simple projects.
+
+-ESP32 modules:
+ Single-core: for single/simple tasks.
+ Dual-core: for multitasking, managed with FreeRTOS.
+
+-FreeRTOS (By Richard Barry): Free Real Time Operating System, is 
+ an embedded devices OS kernel written in C. It provides a 
+ hardware management for the ESP32 (IO, memory, threads, 
+ schedulers...)
+ #Note:
+  It has an option named Tickless for low power applications. The 
+  main idea of this feature is instead of traditional deep sleep 
+  mode, the ESP32 calculates how long it can stay on low power 
+  mode.
+
+-GPIO (General-Purpose Input/Output) pins/connectors.
+
+-OTA (Over The Air): The ability of accessing, updating the 
+ firmware remotly (via WIFI) without the need of physical access 
+ via USB.
+
+-WDT (WatchDog Timers): A Watchdog is a security feature that 
+ makes the device safly to prevent sudden crashes. Its main job is 
+ resetting the device if a danger is detected (like overheating, 
+ device stops responding...).
