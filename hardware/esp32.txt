@@ -1,0 +1,54 @@
+			IN THE NAME OF ALLAH,
+# History             : 20-12-2025
+# Project             : SmartDrop+
+# Document description: This is a general search paper for the ESP32. 
+
+			ESP32: the core compoment
+# ESP32: Made by Espressif Syetems.
+# Dev Platform:
+ -ESP-IDF (Iot Develompent Framework): Officiel, more professional 
+  tools, suitable for projects.
+ -Arduino IDE: Begginner, simple projects.
+
+# ESP32 modules:
+ Single-core: for single/simple tasks.
+ Dual-core: for multitasking, managed with FreeRTOS.
+
+# FreeRTOS (By Richard Barry): Free Real Time Operating System, is 
+ an embedded devices OS kernel written in C. It provides a 
+ hardware management for the ESP32 (IO, memory, threads, 
+ schedulers...)
+ -Note:
+  It has an option named Tickless for low power applications. The 
+  main idea of this feature is instead of traditional deep sleep 
+  mode, the ESP32 calculates how long it can stay on low power 
+  mode.
+
+# GPIO (General-Purpose Input/Output) pins/connectors.
+
+# OTA (Over The Air): The ability of accessing, updating the 
+ firmware remotly (via WIFI) without the need of physical access 
+ via USB.
+
+# WDT (WatchDog Timers): A Watchdog is a security feature that 
+ makes the device safly to prevent sudden crashes. Its main job is 
+ resetting the device if a danger is detected (like overheating, 
+ device stops responding...).
+# ESP32, which one to choose? :
+ Source: https://www.espboards.dev/blog/esp32-soc-options
+
+ ESP32-CLASSIC:
+  -Realese date: 2016.
+  -Architecture: Dual-Core Xtensa LX6 (240 MHz).
+  -Memory      : 520 KB SRAM, 448 KB ROM, up to 4 MB Flash.
+  -Features    : WIFI 2.4GHz (802.11n), BT-CLASSIC + BLE 4.2,
+                 up to 150 Mbps.
+  -Power       : ~100 µA deep sleep, Battery-friendly.
+  -Modules     : WROOM, WROVER(External RAM), MINI.
+
+ ESP32-S2:
+  -Realese date: 2019.
+  -Architecture: Single-Core Xtensa LX7 (240 MHz).
+  -Memory      : 320 KB SRAM, 128 KB ROM, up to 4 MB Flash.
+  -Features    : WIFI 2.4 GHz, No BT!, USB OTG support.
+  -Power       : ~22 µA deep sleep, x5 better that CLASSIC version.
