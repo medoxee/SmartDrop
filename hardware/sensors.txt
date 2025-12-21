@@ -1,0 +1,47 @@
+			# IN THE NAME OF ALLAH,
+# History    : 21-12-2025
+# Project    : SmartDrop+
+# Description: Rsearche paper for types of sensors used in Agriculture.
+
+			Sensors: The source of informations
+# Source:
+ https://www.sciencedirect.com/science/article/pii/S0168169924007762
+
+# Types of sensors:
+ ## Moisture sensor (Index in article: 3.1):
+  -Main job:
+	Measurement of soil's characteristics to indicate water
+	content.
+  -Content measured:
+	1-Dielctric permittivity (capaticance): How much electricity
+	the siol can store.
+	2-Matrix potential (Tension): How hard the plant roots can
+	drink water from the soil.
+	3-Volumetric moisture (VWC) : How much of water in specific
+	amount of soil.
+  -components:
+	1-Probe electrodes insede soil to deliver "bias" and "readout".
+	2-Communication circuites: e.g: coaxial cables.
+	3-Electronic circuites: for signale execution.
+  -Types (based on operational systems):
+	1-Capacitive-based: stores amount of energy based on water
+	amount in soil (measure capatitance).
+
+ ## Water flow sensor:
+  -Main job:
+	Measures the flow cantity of water(Litres) per minute.
+  -Components:
+	A small wheel inside of a plastic sheild that spins with the
+	flow of water.
+
+ ## Water level sensor:
+  -Main job:
+	Measures the level of water in a tank.
+  -Components:
+	An ultrasonic device that sends waves and records the time
+	until it comes back, this is used to calculate the volume of
+	the water tank.
+
+ ## Air temperature/humidity:
+  -Main job:
+	Measures air temperature and humidity.
