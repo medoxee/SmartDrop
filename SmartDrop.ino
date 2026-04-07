@@ -1,7 +1,7 @@
 /*
  * ====================================================================
  * PROJECT: SmartDrop+ (Système d'Irrigation Intelligent & Prédictif)
- * VERSION: 9.0 (Arduino IDE - Urgency Mode & Dashboard Update)
+ * VERSION: 10.0 (Arabic Dashboard + Corrected Urgency Logic + Export Data Btn)
  * MATÉRIEL: ESP32-S3, SHT31, RTC DS3231, Capteurs Sol analogiques
  * ====================================================================
  */
@@ -23,9 +23,9 @@ const int RELAY_OFF = LOW;
 
 // --- PINS DES CAPTEURS & LEDS ---
 const int RAIN_DO_PIN = 10;   
-const int RAIN_AO_PIN =11;    
-const int SURVIVAL_LED = 18;  // Erreurs critiques (I2C)
-const int URGENT_LED = 20;    // Mode Urgence (Capteurs bloqués/illogiques)
+const int RAIN_AO_PIN = 7;    
+const int SURVIVAL_LED = 18;  
+const int URGENT_LED = 20;    
 
 // --- STRUCTURE DES ZONES ---
 struct Zone {
@@ -52,9 +52,9 @@ bool isRainingGlobal = false;
 float currentTemp = 25.0;
 float currentRainMm = 0.0;
 
-// --- VARIABLES DU MODE URGENCE (30 Secondes) ---
+// --- VARIABLES DU MODE URGENCE ---
 bool isUrgentMode = false;
-String urgentReason = "Normal";
+String urgentReason = "طبيعي";
 
 float lastTemp = -999.0;
 unsigned long lastTempChangeTime = 0;
@@ -74,11 +74,11 @@ const unsigned long ledInterval = 300;
 bool ledState = false;
 
 // ====================================================================
-// PAGE HTML & CSS (Modifiée: Sans heure, avec Mode Urgence)
+// PAGE HTML & CSS (ARABIC - RTL)
 // ====================================================================
 const char INDEX_HTML[] = R"rawliteral(
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -96,18 +96,20 @@ const char INDEX_HTML[] = R"rawliteral(
     .on { color: #00ff00; font-weight: bold; }
     .off { color: #aaaaaa; }
     .err { color: #ff3333; font-weight: bold; }
+    .btn-extract { background-color: #00d2ff; color: #121212; border: none; padding: 10px; width: 100%; border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background 0.3s; }
+    .btn-extract:hover { background-color: #0099cc; }
   </style>
 </head>
 <body>
-  <h1>💧 SmartDrop+ Dashboard</h1>
+  <h1>💧 SmartDrop+</h1>
   
   <div id="urgent-box" class="urgent-banner">
-    ⚠️ URGENT MODE ACTIVE: <span id="urgent-reason"></span>
+    ⚠️ وضع الطوارئ نشط: <span id="urgent-reason"></span>
   </div>
 
   <div class="header-card">
-    <span id="temp">Temp: -- °C</span> | 
-    <span id="rain">Rain: -- mm</span> 
+    <span id="temp">الحرارة: -- °C</span> | 
+    <span id="rain">المطر: -- mm</span> 
     <span id="status"></span>
   </div>
   
@@ -115,15 +117,18 @@ const char INDEX_HTML[] = R"rawliteral(
     </div>
 
   <script>
+    function extractData(zoneName) {
+      alert("يتم الآن تجهيز استخراج البيانات لمنطقة: " + zoneName + "\n(ملاحظة: تحتاج إلى ذاكرة SD لحفظ السجل اليومي بالكامل)");
+    }
+
     function updateDashboard() {
       fetch('/data')
         .then(response => response.json())
         .then(data => {
-          document.getElementById('temp').innerText = "Temp: " + data.temp + " °C";
-          document.getElementById('rain').innerText = "Rain: " + data.rain + " mm";
-          document.getElementById('status').innerHTML = data.isRaining ? "<span class='err'>(RAIN OVERRIDE)</span>" : "<span class='on'>(WEATHER OK)</span>";
+          document.getElementById('temp').innerText = "الحرارة: " + data.temp + " °C";
+          document.getElementById('rain').innerText = "المطر: " + data.rain + " mm";
+          document.getElementById('status').innerHTML = data.isRaining ? "<span class='err'>(توقف بسبب المطر)</span>" : "<span class='on'>(الطقس جيد)</span>";
           
-          // Gestion du Mode Urgence
           let uBox = document.getElementById('urgent-box');
           if(data.isUrgent) {
              uBox.style.display = "block";
@@ -134,16 +139,17 @@ const char INDEX_HTML[] = R"rawliteral(
 
           let zonesHtml = '';
           data.zones.forEach(z => {
-            let valveHtml = z.valve ? "<span class='on'>[ON] IRRIGATING</span>" : "<span class='off'>[OFF] STANDBY</span>";
-            let healthHtml = z.error ? "<span class='err'>DISCONNECTED</span>" : "<span class='on'>HEALTHY</span>";
+            let valveHtml = z.valve ? "<span class='on'>[يعمل] جاري الري</span>" : "<span class='off'>[متوقف] وضع الاستعداد</span>";
+            let healthHtml = z.error ? "<span class='err'>غير متصل</span>" : "<span class='on'>سليم</span>";
             
             zonesHtml += `
               <div class="card">
                 <h2>🌱 ${z.name}</h2>
-                <div class="stat">Moisture: <b>${z.moisture}%</b></div>
-                <div class="stat">Deficit (Dr): <b>${z.dr}</b></div>
-                <div class="stat">Health: ${healthHtml}</div>
-                <div class="stat">Valve: ${valveHtml}</div>
+                <div class="stat">الرطوبة: <b>${z.moisture}%</b></div>
+                <div class="stat">النقص (Dr): <b>${z.dr}</b></div>
+                <div class="stat">الحالة: ${healthHtml}</div>
+                <div class="stat">الصمام: ${valveHtml}</div>
+                <button class="btn-extract" onclick="extractData('${z.name}')">📥 استخراج بيانات اليوم</button>
               </div>
             `;
           });
@@ -164,7 +170,8 @@ const char INDEX_HTML[] = R"rawliteral(
 void handleRoot() { server.send(200, "text/html", INDEX_HTML); }
 
 void handleData() {
-  char jsonBuffer[1024];
+  // Buffer augmenté pour supporter les caractères Arabes (UTF-8)
+  char jsonBuffer[1536]; 
   snprintf(jsonBuffer, sizeof(jsonBuffer), 
     "{\"temp\":%.1f,\"rain\":%.1f,\"isRaining\":%s,\"isUrgent\":%s,\"urgentReason\":\"%s\",\"zones\":["
     "{\"name\":\"%s\",\"moisture\":%.0f,\"dr\":%.2f,\"error\":%s,\"valve\":%s},"
@@ -192,7 +199,6 @@ void setup() {
   if (!sht31.begin(0x44)) { globalError = true; }
   if (!rtc.begin())       { globalError = true; }
   
-  // NOTE: Décommente la ligne ci-dessous UNE FOIS pour régler l'heure si besoin
   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
   pinMode(RAIN_DO_PIN, INPUT_PULLUP);
@@ -217,7 +223,6 @@ void setup() {
     server.begin();
   }
   
-  // Initialisation des timers d'urgence pour éviter un faux positif au démarrage
   unsigned long startMillis = millis();
   lastTempChangeTime = startMillis;
   for(int i=0; i<3; i++) lastMoistureChangeTime[i] = startMillis;
@@ -230,7 +235,6 @@ void loop() {
   unsigned long currentMillis = millis();
   server.handleClient();
 
-  // TACHE 1 : CLIGNOTEMENT DES LEDS (Survie & Urgence) à 300ms
   if (globalError || isUrgentMode) {
     if (currentMillis - previousLedMillis >= ledInterval) {
       previousLedMillis = currentMillis;
@@ -244,30 +248,27 @@ void loop() {
     ledState = false;
   }
 
-  // TACHE 2 : LOGIQUE DES CAPTEURS (Toutes les 4s)
   if (currentMillis - previousMainMillis >= mainInterval) {
     previousMainMillis = currentMillis;
     
-    // Reset par défaut
     isUrgentMode = false;
     urgentReason = "";
     globalError = false; 
 
-    // Lecture Température
+    // --- 1. SHT31 ---
     currentTemp = sht31.readTemperature();
     if (isnan(currentTemp)) { currentTemp = 25.0; globalError = true; }
 
-    // --- VERIFICATION URGENCE 1: SHT31 BLOQUÉ ---
     if (currentTemp != lastTemp) {
       lastTempChangeTime = currentMillis;
       lastTemp = currentTemp;
     }
     if (currentMillis - lastTempChangeTime > 30000) {
       isUrgentMode = true;
-      urgentReason = "SHT31 Temp Sensor Stuck";
+      urgentReason = "مستشعر الحرارة معلق ولا يتغير";
     }
 
-    // Lecture Pluie
+    // --- 2. PLUIE ---
     int rainRaw = analogRead(RAIN_AO_PIN);
     currentRainMm = constrain(map(rainRaw, 4095, 0, 0, 40) / 10.0, 0.0, 4.0);
     isRainingGlobal = ((digitalRead(RAIN_DO_PIN) == LOW) || currentRainMm > 1.0);
@@ -285,33 +286,11 @@ void loop() {
 
       zones[i].currentMoisture = constrain(map(soilRaw, 4095, 1500, 0, 100), 0, 100);
 
-      // --- VERIFICATION URGENCE 2: HUMIDITÉ BLOQUÉE ---
-      if (zones[i].currentMoisture != lastMoisture[i]) {
-        lastMoistureChangeTime[i] = currentMillis;
-        lastMoisture[i] = zones[i].currentMoisture;
-      }
-      if (currentMillis - lastMoistureChangeTime[i] > 30000) {
-        isUrgentMode = true;
-        urgentReason = zones[i].name + " Moisture Stuck";
-      }
-
-      // --- VERIFICATION URGENCE 3: ILLOGIQUE (Pluie + Sol Sec) ---
-      if (isRainingGlobal && zones[i].currentMoisture <= 30.0) {
-        if (illogicalRainTime[i] == 0) { illogicalRainTime[i] = currentMillis; }
-        else if (currentMillis - illogicalRainTime[i] > 30000) {
-          isUrgentMode = true;
-          urgentReason = zones[i].name + " Rain but Soil Dry";
-        }
-      } else {
-        illogicalRainTime[i] = 0; // Reset si logique redevient normale
-      }
-
-      // Evapotranspiration et Nuit
+      // --- LOGIQUE D'IRRIGATION ---
       DateTime now = rtc.now();
       zones[i].Dr += (ET0 * zones[i].Kc);
       bool isNight = (now.hour() >= 18 || now.hour() <= 8);
 
-      // Logique d'Irrigation
       if (globalError || zones[i].sensorError || isRainingGlobal) {
         zones[i].isIrrigating = false; 
       } else {
@@ -327,12 +306,37 @@ void loop() {
         }
       }
 
-      // Activation des vannes
+      // --- VERIFICATION URGENCE: HUMIDITÉ BLOQUÉE (PENDANT L'IRRIGATION SEULEMENT) ---
+      if (zones[i].currentMoisture != lastMoisture[i]) {
+        lastMoistureChangeTime[i] = currentMillis;
+        lastMoisture[i] = zones[i].currentMoisture;
+      }
+      
+      // RESET LE CHRONO SI LA VANNE EST FERMÉE
+      if (!zones[i].isIrrigating) {
+        lastMoistureChangeTime[i] = currentMillis;
+      }
+
+      // DÉCLENCHE L'ALARME SEULEMENT SI LA VANNE EST OUVERTE DEPUIS > 30s SANS CHANGEMENT D'HUMIDITÉ
+      if (zones[i].isIrrigating && (currentMillis - lastMoistureChangeTime[i] > 30000)) {
+        isUrgentMode = true;
+        urgentReason = zones[i].name + " - مستشعر الرطوبة معلق أثناء الري";
+      }
+
+      // --- VERIFICATION URGENCE: ILLOGIQUE (Pluie + Sol Sec) ---
+      if (isRainingGlobal && zones[i].currentMoisture <= 30.0) {
+        if (illogicalRainTime[i] == 0) { illogicalRainTime[i] = currentMillis; }
+        else if (currentMillis - illogicalRainTime[i] > 30000) {
+          isUrgentMode = true;
+          urgentReason = zones[i].name + " - تمطر ولكن التربة جافة";
+        }
+      } else {
+        illogicalRainTime[i] = 0; 
+      }
+
+      // --- ACTIVATION ---
       digitalWrite(zones[i].relayPin, zones[i].isIrrigating ? RELAY_ON : RELAY_OFF);
       digitalWrite(zones[i].ledPin, zones[i].isIrrigating ? HIGH : LOW);
     }
-    
-    // Serial Monitor Output (Optionnel, utile pour débugger)
-    Serial.print("URGENT MODE: "); Serial.println(isUrgentMode ? "ACTIVE - " + urgentReason : "OFF");
   }
 }
