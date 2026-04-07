@@ -23,7 +23,7 @@ const int RELAY_OFF = LOW;
 
 // --- PINS DES CAPTEURS & LEDS ---
 const int RAIN_DO_PIN = 10;   
-const int RAIN_AO_PIN = 7;    
+const int RAIN_AO_PIN =11;    
 const int SURVIVAL_LED = 18;  // Erreurs critiques (I2C)
 const int URGENT_LED = 20;    // Mode Urgence (Capteurs bloqués/illogiques)
 
